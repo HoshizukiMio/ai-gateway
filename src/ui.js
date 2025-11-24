@@ -3,65 +3,61 @@
  * Generates a beautiful, responsive HTML interface to list available providers
  */
 
-export function generateUI(providers) {
-  const providerList = Object.entries(providers).map(([key, provider]) => {
-    const isNativeOpenAI = provider.nativeFormat === 'openai';
+/**
+ * UI Generator for AI Gateway
+ * Generates a beautiful, responsive HTML interface to list available providers
+ */
 
-    // Generate OpenAI Compatible Endpoint (Standard)
-    const openaiEndpoint = `
-      <div class="endpoint-item recommended">
+function generateEndpointItem(key, name, path, provider, isRecommended = false) {
+  const endpointId = `${key}-${name}`;
+  const recommendedClass = isRecommended ? 'recommended' : '';
+  const recommendedTag = isRecommended ? '<span class="endpoint-tag">Recommended</span>' : '';
+
+  // Determine format for Curl generation
+  let format = provider.nativeFormat;
+  if (isRecommended) {
+    format = 'openai'; // Recommended endpoints are always OpenAI compatible
+  }
+
+  return `
+      <div class="endpoint-item ${recommendedClass}">
         <div class="endpoint-header">
             <span class="endpoint-method">POST</span>
-            <code class="endpoint-path">/openai/${key}/v1/chat/completions</code>
-            <span class="endpoint-tag">Recommended</span>
+            <code class="endpoint-path">${path}</code>
+            ${recommendedTag}
             <div class="endpoint-actions">
-                <button class="action-btn" onclick="copyToClipboard('/openai/${key}/v1/chat/completions')" title="Copy path">
+                <button class="action-btn" onclick="copyToClipboard('${path}')" title="Copy path">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 </button>
-                <button class="action-btn" onclick="toggleCurl('${key}', 'openai-chat', '/openai/${key}/v1/chat/completions', 'Authorization', 'Bearer ', 'openai')" title="Generate Curl">
+                <button class="action-btn" onclick="toggleCurl('${key}', '${name}', '${path}', '${provider.authHeader}', '${provider.authPrefix}', '${format}')" title="Generate Curl">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
                 </button>
             </div>
         </div>
-        <div id="curl-${key}-openai-chat" class="curl-section" style="display: none;">
-            <pre><code class="language-bash" id="curl-code-${key}-openai-chat"></code></pre>
-            <button class="copy-curl-btn" onclick="copyCurl('${key}', 'openai-chat')">Copy Command</button>
-        </div>
-      </div>`;
-
-    // Generate Native Endpoints (if not OpenAI or if we want to show specific native paths)
-    // If native is OpenAI, the above covers the main one, but we might want to show others from the config if they exist (like models/embeddings)
-    // For simplicity, if native is OpenAI, we'll skip the duplicate chat completion if it matches, but show others.
-    // Actually, let's just show the "Native / Other Endpoints" section if there are any.
-
-    const nativeEndpoints = Object.entries(provider.endpoints).map(([name, path]) => {
-      // Skip chatCompletions if it's already shown as the recommended OpenAI one (for OpenAI native providers)
-      if (isNativeOpenAI && path === '/v1/chat/completions') return '';
-
-      const fullPath = `/${provider.nativeFormat}/${key}${path}`;
-      return `
-      <div class="endpoint-item">
-        <div class="endpoint-header">
-            <span class="endpoint-method">POST</span>
-            <code class="endpoint-path">${fullPath}</code>
-            <div class="endpoint-actions">
-                <button class="action-btn" onclick="copyToClipboard('${fullPath}')" title="Copy path">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-                <button class="action-btn" onclick="toggleCurl('${key}', '${name}', '${fullPath}', '${provider.authHeader}', '${provider.authPrefix}', '${provider.nativeFormat}')" title="Generate Curl">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                </button>
-            </div>
-        </div>
-        <div id="curl-${key}-${name}" class="curl-section" style="display: none;">
-            <pre><code class="language-bash" id="curl-code-${key}-${name}"></code></pre>
+        <div id="curl-${endpointId}" class="curl-section" style="display: none;">
+            <pre><code class="language-bash" id="curl-code-${endpointId}"></code></pre>
             <button class="copy-curl-btn" onclick="copyCurl('${key}', '${name}')">Copy Command</button>
         </div>
-      </div>
-    `;
-    }).join('');
+      </div>`;
+}
 
-    return `
+function generateProviderCard(key, provider) {
+  const isNativeOpenAI = provider.nativeFormat === 'openai';
+
+  // 1. Generate OpenAI Compatible Endpoint (Standard)
+  const openaiPath = `/openai/${key}/v1/chat/completions`;
+  const openaiEndpointHtml = generateEndpointItem(key, 'openai-chat', openaiPath, provider, true);
+
+  // 2. Generate Native Endpoints
+  const nativeEndpointsHtml = Object.entries(provider.endpoints).map(([name, path]) => {
+    // Skip chatCompletions if it's already shown as the recommended OpenAI one (for OpenAI native providers)
+    if (isNativeOpenAI && path === '/v1/chat/completions') return '';
+
+    const fullPath = `/${provider.nativeFormat}/${key}${path}`;
+    return generateEndpointItem(key, name, fullPath, provider, false);
+  }).join('');
+
+  return `
       <div class="provider-card">
         <div class="provider-header">
           <h2>${provider.name}</h2>
@@ -80,19 +76,20 @@ export function generateUI(providers) {
         <div class="endpoints-section">
           <h3>OpenAI Compatible (Recommended)</h3>
           <div class="endpoints-list">
-            ${openaiEndpoint}
+            ${openaiEndpointHtml}
           </div>
-          ${nativeEndpoints.trim() ? `
+          ${nativeEndpointsHtml.trim() ? `
           <h3>Native / Other Endpoints</h3>
           <div class="endpoints-list">
-            ${nativeEndpoints}
+            ${nativeEndpointsHtml}
           </div>
           ` : ''}
         </div>
       </div>
     `;
-  }).join('');
+}
 
+function generatePage(providerListHtml) {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -443,7 +440,7 @@ export function generateUI(providers) {
     </header>
 
     <div class="grid">
-      ${providerList}
+      ${providerListHtml}
     </div>
 
     <footer>
@@ -452,7 +449,7 @@ export function generateUI(providers) {
   </div>
   
   <div id="toast" class="toast">Copied to clipboard!</div>
-
+  
   <script>
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
@@ -528,4 +525,12 @@ export function generateUI(providers) {
 </body>
 </html>
   `;
+}
+
+export function generateUI(providers) {
+  const providerListHtml = Object.entries(providers)
+    .map(([key, provider]) => generateProviderCard(key, provider))
+    .join('');
+
+  return generatePage(providerListHtml);
 }
