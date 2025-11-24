@@ -4,18 +4,64 @@
  */
 
 export function generateUI(providers) {
-    const providerList = Object.entries(providers).map(([key, provider]) => {
-        const endpoints = Object.entries(provider.endpoints).map(([name, path]) => `
-      <div class="endpoint-item">
-        <span class="endpoint-method">POST</span>
-        <code class="endpoint-path">${path}</code>
-        <button class="copy-btn" onclick="copyToClipboard('${path}')" title="Copy path">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-        </button>
-      </div>
-    `).join('');
+  const providerList = Object.entries(providers).map(([key, provider]) => {
+    const isNativeOpenAI = provider.nativeFormat === 'openai';
 
-        return `
+    // Generate OpenAI Compatible Endpoint (Standard)
+    const openaiEndpoint = `
+      <div class="endpoint-item recommended">
+        <div class="endpoint-header">
+            <span class="endpoint-method">POST</span>
+            <code class="endpoint-path">/openai/${key}/v1/chat/completions</code>
+            <span class="endpoint-tag">Recommended</span>
+            <div class="endpoint-actions">
+                <button class="action-btn" onclick="copyToClipboard('/openai/${key}/v1/chat/completions')" title="Copy path">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+                <button class="action-btn" onclick="toggleCurl('${key}', 'openai-chat', '/openai/${key}/v1/chat/completions', 'Authorization', 'Bearer ', 'openai')" title="Generate Curl">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                </button>
+            </div>
+        </div>
+        <div id="curl-${key}-openai-chat" class="curl-section" style="display: none;">
+            <pre><code class="language-bash" id="curl-code-${key}-openai-chat"></code></pre>
+            <button class="copy-curl-btn" onclick="copyCurl('${key}', 'openai-chat')">Copy Command</button>
+        </div>
+      </div>`;
+
+    // Generate Native Endpoints (if not OpenAI or if we want to show specific native paths)
+    // If native is OpenAI, the above covers the main one, but we might want to show others from the config if they exist (like models/embeddings)
+    // For simplicity, if native is OpenAI, we'll skip the duplicate chat completion if it matches, but show others.
+    // Actually, let's just show the "Native / Other Endpoints" section if there are any.
+
+    const nativeEndpoints = Object.entries(provider.endpoints).map(([name, path]) => {
+      // Skip chatCompletions if it's already shown as the recommended OpenAI one (for OpenAI native providers)
+      if (isNativeOpenAI && path === '/v1/chat/completions') return '';
+
+      const fullPath = `/${provider.nativeFormat}/${key}${path}`;
+      return `
+      <div class="endpoint-item">
+        <div class="endpoint-header">
+            <span class="endpoint-method">POST</span>
+            <code class="endpoint-path">${fullPath}</code>
+            <div class="endpoint-actions">
+                <button class="action-btn" onclick="copyToClipboard('${fullPath}')" title="Copy path">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+                <button class="action-btn" onclick="toggleCurl('${key}', '${name}', '${fullPath}', '${provider.authHeader}', '${provider.authPrefix}', '${provider.nativeFormat}')" title="Generate Curl">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                </button>
+            </div>
+        </div>
+        <div id="curl-${key}-${name}" class="curl-section" style="display: none;">
+            <pre><code class="language-bash" id="curl-code-${key}-${name}"></code></pre>
+            <button class="copy-curl-btn" onclick="copyCurl('${key}', '${name}')">Copy Command</button>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    return `
       <div class="provider-card">
         <div class="provider-header">
           <h2>${provider.name}</h2>
@@ -27,41 +73,49 @@ export function generateUI(providers) {
             <code class="value">${provider.baseURL}</code>
           </div>
           <div class="info-row">
-            <span class="label">Auth Header:</span>
-            <code class="value">${provider.authHeader}</code>
-          </div>
-          <div class="info-row">
             <span class="label">Native Format:</span>
             <code class="value">${provider.nativeFormat}</code>
           </div>
         </div>
         <div class="endpoints-section">
-          <h3>Endpoints</h3>
+          <h3>OpenAI Compatible (Recommended)</h3>
           <div class="endpoints-list">
-            ${endpoints}
+            ${openaiEndpoint}
           </div>
+          ${nativeEndpoints.trim() ? `
+          <h3>Native / Other Endpoints</h3>
+          <div class="endpoints-list">
+            ${nativeEndpoints}
+          </div>
+          ` : ''}
         </div>
       </div>
     `;
-    }).join('');
+  }).join('');
 
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Gateway Service</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-color: #0f172a;
-      --card-bg: #1e293b;
+      --card-bg: rgba(30, 41, 59, 0.7);
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
       --accent: #38bdf8;
       --accent-hover: #0ea5e9;
-      --border: #334155;
-      --code-bg: #020617;
+      --border: rgba(51, 65, 85, 0.5);
+      --code-bg: rgba(2, 6, 23, 0.5);
+      --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+      --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      --success: #10b981;
     }
 
     * {
@@ -71,11 +125,18 @@ export function generateUI(providers) {
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-family: 'Inter', sans-serif;
       background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.15) 0px, transparent 50%);
+      background-attachment: fixed;
       color: var(--text-primary);
       line-height: 1.6;
       padding: 2rem;
+      min-height: 100vh;
     }
 
     .container {
@@ -86,121 +147,183 @@ export function generateUI(providers) {
     header {
       text-align: center;
       margin-bottom: 4rem;
-      padding: 2rem 0;
-      background: radial-gradient(circle at center, rgba(56, 189, 248, 0.1) 0%, transparent 70%);
+      padding: 3rem 0;
+      position: relative;
+    }
+
+    header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 4px;
+        background: linear-gradient(90deg, #38bdf8, #818cf8);
+        border-radius: 2px;
     }
 
     h1 {
-      font-size: 3rem;
+      font-size: 3.5rem;
       font-weight: 800;
-      background: linear-gradient(to right, #38bdf8, #818cf8);
+      background: linear-gradient(to right, #38bdf8, #818cf8, #c084fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+      text-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
     }
 
     .subtitle {
       color: var(--text-secondary);
-      font-size: 1.2rem;
+      font-size: 1.25rem;
+      font-weight: 300;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
       gap: 2rem;
     }
 
     .provider-card {
       background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: var(--glass-border);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      transition: all 0.3s ease;
+      box-shadow: var(--glass-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .provider-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent), transparent);
+        opacity: 0;
+        transition: opacity 0.3s;
     }
 
     .provider-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      border-color: var(--accent);
+      box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.2);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .provider-card:hover::before {
+        opacity: 1;
     }
 
     .provider-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
+      margin-bottom: 2rem;
       padding-bottom: 1rem;
       border-bottom: 1px solid var(--border);
     }
 
     .provider-header h2 {
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       color: var(--text-primary);
+      font-weight: 700;
     }
 
     .provider-badge {
-      background-color: rgba(56, 189, 248, 0.1);
+      background: rgba(56, 189, 248, 0.15);
       color: var(--accent);
-      padding: 0.25rem 0.75rem;
+      padding: 0.35rem 1rem;
       border-radius: 9999px;
-      font-size: 0.875rem;
-      font-weight: 600;
+      font-size: 0.75rem;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: 1px solid rgba(56, 189, 248, 0.2);
     }
 
     .info-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 0.75rem;
-      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      align-items: center;
     }
 
     .label {
       color: var(--text-secondary);
+      font-weight: 500;
     }
 
     code {
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-family: 'JetBrains Mono', monospace;
       background-color: var(--code-bg);
-      padding: 0.2rem 0.4rem;
-      border-radius: 0.25rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 0.5rem;
       font-size: 0.85rem;
       color: #e2e8f0;
+      border: 1px solid rgba(255,255,255,0.05);
     }
 
     .endpoints-section {
-      margin-top: 1.5rem;
+      margin-top: 2rem;
     }
 
     .endpoints-section h3 {
-      font-size: 1rem;
+      font-size: 0.85rem;
       color: var(--text-secondary);
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
+      margin-top: 1.5rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .endpoint-item {
-      display: flex;
-      align-items: center;
       background-color: var(--code-bg);
-      padding: 0.75rem;
-      border-radius: 0.5rem;
-      margin-bottom: 0.5rem;
+      border-radius: 0.75rem;
+      margin-bottom: 0.75rem;
       border: 1px solid transparent;
+      transition: all 0.2s;
+      overflow: hidden;
+    }
+    
+    .endpoint-item.recommended {
+        border-color: rgba(16, 185, 129, 0.3);
+        background-color: rgba(16, 185, 129, 0.05);
+    }
+
+    .endpoint-header {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
     }
 
     .endpoint-item:hover {
       border-color: var(--border);
+      background-color: rgba(2, 6, 23, 0.8);
+    }
+    
+    .endpoint-item.recommended:hover {
+        border-color: rgba(16, 185, 129, 0.5);
     }
 
     .endpoint-method {
-      color: #10b981;
-      font-weight: bold;
-      font-size: 0.8rem;
-      margin-right: 0.75rem;
+      color: var(--success);
+      font-weight: 800;
+      font-size: 0.75rem;
+      margin-right: 1rem;
       min-width: 40px;
+      font-family: 'JetBrains Mono', monospace;
     }
 
     .endpoint-path {
@@ -210,45 +333,105 @@ export function generateUI(providers) {
       color: var(--text-primary);
       overflow-x: auto;
       white-space: nowrap;
+      border: none;
+    }
+    
+    .endpoint-tag {
+        font-size: 0.65rem;
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--success);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        margin-right: 0.5rem;
+        font-weight: 600;
+        text-transform: uppercase;
     }
 
-    .copy-btn {
-      background: none;
+    .endpoint-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-btn {
+      background: rgba(255, 255, 255, 0.05);
       border: none;
       color: var(--text-secondary);
       cursor: pointer;
-      padding: 0.25rem;
-      border-radius: 0.25rem;
-      transition: color 0.2s, background-color 0.2s;
+      padding: 0.4rem;
+      border-radius: 0.4rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .copy-btn:hover {
+    .action-btn:hover {
       color: var(--accent);
-      background-color: rgba(56, 189, 248, 0.1);
+      background-color: rgba(56, 189, 248, 0.15);
+    }
+
+    .curl-section {
+        background-color: #000;
+        padding: 1rem;
+        border-top: 1px solid var(--border);
+        position: relative;
+    }
+
+    .curl-section pre {
+        white-space: pre-wrap;
+        word-break: break-all;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        color: #a5b4fc;
+        margin-bottom: 0.5rem;
+    }
+
+    .copy-curl-btn {
+        background-color: var(--accent);
+        color: #0f172a;
+        border: none;
+        padding: 0.3rem 0.8rem;
+        border-radius: 0.3rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: block;
+        margin-left: auto;
+    }
+
+    .copy-curl-btn:hover {
+        background-color: var(--accent-hover);
     }
 
     footer {
       text-align: center;
-      margin-top: 4rem;
+      margin-top: 5rem;
       color: var(--text-secondary);
       font-size: 0.9rem;
+      padding-bottom: 2rem;
     }
     
     .toast {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background-color: #10b981;
+      bottom: 30px;
+      right: 30px;
+      background-color: var(--success);
       color: white;
-      padding: 10px 20px;
-      border-radius: 5px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       opacity: 0;
-      transition: opacity 0.3s;
+      transform: translateY(20px);
+      transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
       pointer-events: none;
+      z-index: 100;
+      font-weight: 500;
     }
     
     .toast.show {
       opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
@@ -273,12 +456,73 @@ export function generateUI(providers) {
   <script>
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!');
+      });
+    }
+
+    function showToast(message) {
         const toast = document.getElementById('toast');
+        toast.textContent = message;
         toast.classList.add('show');
         setTimeout(() => {
           toast.classList.remove('show');
         }, 2000);
-      });
+    }
+
+    function toggleCurl(providerKey, endpointName, path, authHeader, authPrefix, format) {
+        const sectionId = \`curl-\${providerKey}-\${endpointName}\`;
+        const codeId = \`curl-code-\${providerKey}-\${endpointName}\`;
+        const section = document.getElementById(sectionId);
+        const codeBlock = document.getElementById(codeId);
+        
+        if (section.style.display === 'none') {
+            const url = window.location.origin + path;
+            const prefix = authPrefix ? authPrefix : '';
+            
+            let body = '';
+            
+            if (format === 'openai') {
+                body = \`{
+    "model": "gpt-3.5-turbo",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }\`;
+            } else if (format === 'gemini') {
+                body = \`{
+    "contents": [{
+      "parts": [{"text": "Hello!"}]
+    }]
+  }\`;
+            } else if (format === 'claude') {
+                body = \`{
+    "model": "claude-3-sonnet-20240229",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }\`;
+            } else {
+                // Default fallback
+                body = \`{
+    "prompt": "Hello!"
+  }\`;
+            }
+
+            const curlCommand = \`curl -X POST "\${url}" \\
+  -H "Content-Type: application/json" \\
+  -H "\${authHeader}: \${prefix}YOUR_API_KEY" \\
+  -d '\${body}'\`;
+            
+            codeBlock.textContent = curlCommand;
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    function copyCurl(providerKey, endpointName) {
+        const codeId = \`curl-code-\${providerKey}-\${endpointName}\`;
+        const text = document.getElementById(codeId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Curl command copied!');
+        });
     }
   </script>
 </body>
