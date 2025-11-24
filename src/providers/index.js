@@ -1,16 +1,28 @@
 /**
  * Provider Registry
+/**
+ * Provider Registry
  * Central dispatcher for provider operations
  */
 
 import * as openaiProvider from './openai.js';
 import * as geminiProvider from './gemini.js';
 import * as claudeProvider from './claude.js';
+import * as genericOpenaiProvider from './generic-openai.js';
 
 const providers = {
     openai: openaiProvider,
     gemini: geminiProvider,
-    claude: claudeProvider
+    claude: claudeProvider,
+    // All OpenAI-compatible providers use the generic adapter
+    mistral: 'generic-openai',
+    cohere: 'generic-openai',
+    deepseek: 'generic-openai',
+    qwen: 'generic-openai',
+    glm: 'generic-openai',
+    ernie: 'generic-openai',
+    groq: 'generic-openai',
+    perplexity: 'generic-openai'
 };
 
 /**
@@ -19,7 +31,14 @@ const providers = {
  * @returns {Object} Provider adapter
  */
 export function getProviderAdapter(providerName) {
-    return providers[providerName.toLowerCase()];
+    const adapter = providers[providerName.toLowerCase()];
+
+    // If it's a string, use the generic adapter
+    if (adapter === 'generic-openai') {
+        return genericOpenaiProvider;
+    }
+
+    return adapter;
 }
 
 /**
@@ -35,6 +54,11 @@ export async function makeProviderRequest(providerName, requestBody, apiKey, end
     const adapter = getProviderAdapter(providerName);
     if (!adapter) {
         throw new Error(`Unknown provider: ${providerName}`);
+    }
+
+    // For generic OpenAI adapter, pass the provider name
+    if (adapter === genericOpenaiProvider) {
+        return await adapter.makeRequest(providerName, requestBody, apiKey, endpoint, model);
     }
 
     return await adapter.makeRequest(requestBody, apiKey, endpoint, model);

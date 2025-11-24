@@ -1,15 +1,22 @@
 # AI Gateway - 多提供商多格式AI网关服务
 
-基于 Cloudflare Workers 的统一 AI 网关服务，支持多个 AI 提供商（OpenAI、Google Gemini、Anthropic Claude）并提供自动格式转换功能。
+基于 Cloudflare Workers 的统一 AI 网关服务，支持 **11 个 AI 提供商**（OpenAI、Google Gemini、Anthropic Claude、Mistral AI、Cohere、DeepSeek、Groq、Perplexity、通义千问、智谱AI、文心一言）并提供自动格式转换功能。
 
 ## 特性
 
-- ✅ **多提供商支持**: OpenAI、Google Gemini、Anthropic Claude
+- ✅ **多提供商支持**: 11 个主流 AI 提供商（国际 + 国内）
 - ✅ **多格式支持**: 自动转换不同 API 格式
 - ✅ **配置驱动**: 通过修改配置文件轻松添加新提供商
 - ✅ **无密钥存储**: 使用请求者的 API 密钥，不存储任何凭证
 - ✅ **IP 隐藏**: 通过 Cloudflare 代理隐藏请求者 IP
 - ✅ **CORS 支持**: 支持浏览器直接调用
+
+## 文档导航
+
+- 📚 [所有支持的提供商详情](PROVIDERS.md) - 查看完整的 11 个提供商列表和使用示例
+- ⚙️ [配置指南](CONFIG_GUIDE.md) - 学习如何添加新提供商
+- 💡 [使用示例](EXAMPLES.md) - 各种编程语言的示例代码
+- 🚀 [快速开始](QUICKSTART.md) - 5分钟上手指南
 
 ## URL 模式
 

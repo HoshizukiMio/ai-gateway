@@ -9,7 +9,7 @@ export const PROVIDERS = {
 	openai: {
 		name: 'OpenAI',
 		baseURL: 'https://api.openai.com',
-		authHeader: 'Authorization', // Uses "Bearer {key}" format
+		authHeader: 'Authorization',
 		authPrefix: 'Bearer ',
 		nativeFormat: 'openai',
 		endpoints: {
@@ -18,7 +18,6 @@ export const PROVIDERS = {
 			embeddings: '/v1/embeddings',
 			models: '/v1/models'
 		},
-		// Headers required for requests
 		requiredHeaders: {
 			'Content-Type': 'application/json'
 		}
@@ -27,8 +26,8 @@ export const PROVIDERS = {
 	gemini: {
 		name: 'Google Gemini',
 		baseURL: 'https://generativelanguage.googleapis.com',
-		authHeader: 'x-goog-api-key', // API key passed as header
-		authPrefix: '', // No prefix needed
+		authHeader: 'x-goog-api-key',
+		authPrefix: '',
 		nativeFormat: 'gemini',
 		endpoints: {
 			generateContent: '/v1beta/models/{model}:generateContent',
@@ -53,6 +52,132 @@ export const PROVIDERS = {
 			'Content-Type': 'application/json',
 			'anthropic-version': '2023-06-01'
 		}
+	},
+
+	mistral: {
+		name: 'Mistral AI',
+		baseURL: 'https://api.mistral.ai',
+		authHeader: 'Authorization',
+		authPrefix: 'Bearer ',
+		nativeFormat: 'openai', // Uses OpenAI-compatible format
+		endpoints: {
+			chatCompletions: '/v1/chat/completions',
+			embeddings: '/v1/embeddings',
+			models: '/v1/models'
+		},
+		requiredHeaders: {
+			'Content-Type': 'application/json'
+		}
+	},
+
+	cohere: {
+		name: 'Cohere',
+		baseURL: 'https://api.cohere.ai',
+		authHeader: 'Authorization',
+		authPrefix: 'Bearer ',
+		nativeFormat: 'openai', // Uses OpenAI-compatible format
+		endpoints: {
+			chatCompletions: '/v1/chat/completions',
+			embeddings: '/v1/embed',
+			models: '/v1/models'
+		},
+		requiredHeaders: {
+			'Content-Type': 'application/json'
+		}
+	},
+
+	deepseek: {
+		name: 'DeepSeek',
+		baseURL: 'https://api.deepseek.com',
+		authHeader: 'Authorization',
+		authPrefix: 'Bearer ',
+		nativeFormat: 'openai', // Uses OpenAI-compatible format
+		endpoints: {
+			chatCompletions: '/v1/chat/completions',
+			completions: '/v1/completions',
+			models: '/v1/models'
+		},
+		requiredHeaders: {
+			'Content-Type': 'application/json'
+		}
+	},
+
+	qwen: {
+		name: '阿里云通义千问 (Qwen)',
+		baseURL: 'https://dashscope.aliyuncs.com/api',
+		authHeader: 'Authorization',
+		authPrefix: 'Bearer ',
+		nativeFormat: 'openai', // Uses OpenAI-compatible format
+		endpoints: {
+			chatCompletions: '/v1/services/aigc/text-generation/generation',
+			models: '/v1/models'
+		},
+		requiredHeaders: {
+			'Content-Type': 'application/json',
+			'X-DashScope-SSE': 'disable'
+		}
+	},
+
+	glm: {
+		name: '智谱AI (ChatGLM)',
+		baseURL: 'https://open.bigmodel.cn/api/paas',
+		authHeader: 'Authorization',
+		authPrefix: 'Bearer ',
+		nativeFormat: 'openai', // Uses OpenAI-compatible format
+		endpoints: {
+			chatCompletions: '/v4/chat/completions',
+			embeddings: '/v4/embeddings',
+			models: '/v4/models'
+		},
+		requiredHeaders: {
+			'Content-Type': 'application/json'
+		}
+	},
+
+	ernie: {
+		name: '百度文心一言 (ERNIE)',
+		baseURL: 'https://aip.baidubce.com/rpc/2.0/ai_custom',
+		authHeader: 'Authorization',
+		authPrefix: 'Bearer ',
+		nativeFormat: 'openai', // Uses OpenAI-compatible format (with adapter)
+		endpoints: {
+			chatCompletions: '/v1/wenxinworkshop/chat/completions',
+			embeddings: '/v1/wenxinworkshop/embeddings',
+			models: '/v1/wenxinworkshop/models'
+		},
+		requiredHeaders: {
+			'Content-Type': 'application/json'
+		}
+	},
+
+	groq: {
+		name: 'Groq',
+		baseURL: 'https://api.groq.com/openai',
+		authHeader: 'Authorization',
+		authPrefix: 'Bearer ',
+		nativeFormat: 'openai', // Uses OpenAI-compatible format
+		endpoints: {
+			chatCompletions: '/v1/chat/completions',
+			models: '/v1/models'
+		},
+		requiredHeaders: {
+			'Content-Type': 'application/json'
+		}
+	},
+
+	perplexity: {
+		name: 'Perplexity AI',
+		baseURL: 'https://api.perplexity.ai',
+		authHeader: 'Authorization',
+		authPrefix: 'Bearer ',
+		nativeFormat: 'openai', // Uses OpenAI-compatible format
+		endpoints: {
+			chatCompletions: '/chat/completions',
+			models: '/models'
+		},
+		requiredHeaders: {
+			'Content-Type': 'application/json'
+		}
 	}
 };
 
@@ -67,7 +192,15 @@ export const FORMATS = {
 export const DEFAULT_MODELS = {
 	openai: 'gpt-3.5-turbo',
 	gemini: 'gemini-pro',
-	claude: 'claude-3-sonnet-20240229'
+	claude: 'claude-3-sonnet-20240229',
+	mistral: 'mistral-medium',
+	cohere: 'command',
+	deepseek: 'deepseek-chat',
+	qwen: 'qwen-turbo',
+	glm: 'glm-4',
+	ernie: 'ernie-bot-turbo',
+	groq: 'llama2-70b-4096',
+	perplexity: 'llama-3.1-sonar-small-128k-online'
 };
 
 /**
